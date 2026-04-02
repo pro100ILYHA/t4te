@@ -1,1 +1,381 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Forms;
 
+public class MusicTrack
+{
+    public string Artist { get; set; }
+    public string Title { get; set; }
+    public string Genre { get; set; }
+    public int Year { get; set; }
+
+    public MusicTrack(string artist, string title, string genre, int year)
+    {
+        Artist = artist;
+        Title = title;
+        Genre = genre;
+        Year = year;
+    }
+
+    public override string ToString()
+    {
+        return $"{Artist} - {Title} ({Year}) [{Genre}]";
+    }
+}
+
+public class MusicCollection
+{
+    private List<MusicTrack> tracks = new List<MusicTrack>();
+    private ListView listView;
+
+    public MusicCollection(ListView listView)
+    {
+        this.listView = listView;
+        LoadTracks();
+    }
+
+    private void LoadTracks()
+    {
+        listView.Items.Clear();
+        foreach (var track in tracks)
+        {
+            listView.Items.Add(new ListViewItem(new[] { track.Artist, track.Title, track.Genre, track.Year.ToString() }));
+        }
+    }
+
+    public void AddTrack(MusicTrack track)
+    {
+        tracks.Add(track);
+        LoadTracks();
+        MessageBox.Show("Трек добавлен.", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    public void RemoveTrack(MusicTrack track)
+    {
+        var trackToRemove = tracks.FirstOrDefault(t => 
+            t.Artist == track.Artist && 
+            t.Title == track.Title && 
+            t.Genre == track.Genre && 
+            t.Year == track.Year);
+        
+        if (trackToRemove != null)
+        {
+            tracks.Remove(trackToRemove);
+            LoadTracks();
+            MessageBox.Show("Трек удалён.", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        else
+        {
+            MessageBox.Show("Трек не найден в коллекции.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    public void SearchByArtist(string artist)
+    {
+        var foundTracks = tracks.Where(t => t.Artist.Contains(artist, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (foundTracks.Any())
+        {
+            listView.Items.Clear();
+            foreach (var track in foundTracks)
+            {
+                listView.Items.Add(new ListViewItem(new[] { track.Artist, track.Title, track.Genre, track.Year.ToString() }));
+            }
+            MessageBox.Show($"Найдено треков: {foundTracks.Count}", "Результаты поиска", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        else
+        {
+            MessageBox.Show("Треки не найдены.", "Результаты поиска", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+    }
+
+    public void SortByYear()
+    {
+        var sortedTracks = tracks.OrderBy(t => t.Year).ToList();
+        listView.Items.Clear();
+        foreach (var track in sortedTracks)
+        {
+            listView.Items.Add(new ListViewItem(new[] { track.Artist, track.Title, track.Genre, track.Year.ToString() }));
+        }
+        MessageBox.Show("Сортировка по году выполнена.", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    public void ShowAllTracks()
+    {
+        LoadTracks();
+        MessageBox.Show($"Всего треков в коллекции: {tracks.Count}", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+}
+
+public class AddTrackForm : Form
+{
+    public string Artist { get; set; }
+    public string Title { get; set; }
+    public string Genre { get; set; }
+    public int Year { get; set; }
+
+    public AddTrackForm()
+    {
+        this.Text = "Добавить трек";
+        this.Width = 300;
+        this.Height = 230;
+        this.FormBorderStyle = FormBorderStyle.FixedDialog;
+        this.MaximizeBox = false;
+        this.MinimizeBox = false;
+        this.StartPosition = FormStartPosition.CenterParent;
+
+        var artistLabel = new Label { Text = "Исполнитель:", Location = new System.Drawing.Point(10, 10), Width = 100 };
+        var titleLabel = new Label { Text = "Название:", Location = new System.Drawing.Point(10, 40), Width = 100 };
+        var genreLabel = new Label { Text = "Жанр:", Location = new System.Drawing.Point(10, 70), Width = 100 };
+        var yearLabel = new Label { Text = "Год:", Location = new System.Drawing.Point(10, 100), Width = 100 };
+
+        var artistTextBox = new TextBox { Location = new System.Drawing.Point(120, 10), Width = 150 };
+        var titleTextBox = new TextBox { Location = new System.Drawing.Point(120, 40), Width = 150 };
+        var genreTextBox = new TextBox { Location = new System.Drawing.Point(120, 70), Width = 150 };
+        var yearTextBox = new TextBox { Location = new System.Drawing.Point(120, 100), Width = 50 };
+
+        var okButton = new Button { Text = "OK", Location = new System.Drawing.Point(50, 140), Size = new System.Drawing.Size(75, 23), DialogResult = DialogResult.OK };
+        var cancelButton = new Button { Text = "Отмена", Location = new System.Drawing.Point(140, 140), Size = new System.Drawing.Size(75, 23), DialogResult = DialogResult.Cancel };
+
+        okButton.Click += (sender, e) =>
+        {
+            if (string.IsNullOrWhiteSpace(artistTextBox.Text) ||
+                string.IsNullOrWhiteSpace(titleTextBox.Text) ||
+                string.IsNullOrWhiteSpace(genreTextBox.Text))
+            {
+                MessageBox.Show("Пожалуйста, заполните все поля.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (int.TryParse(yearTextBox.Text, out int year) && year > 0 && year <= DateTime.Now.Year)
+            {
+                Artist = artistTextBox.Text;
+                Title = titleTextBox.Text;
+                Genre = genreTextBox.Text;
+                Year = year;
+                DialogResult = DialogResult.OK;
+                Close();
+            }
+            else
+            {
+                MessageBox.Show("Пожалуйста, введите корректный год (от 1 до текущего года).", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        };
+
+        cancelButton.Click += (sender, e) =>
+        {
+            DialogResult = DialogResult.Cancel;
+            Close();
+        };
+
+        this.Controls.Add(artistLabel);
+        this.Controls.Add(titleLabel);
+        this.Controls.Add(genreLabel);
+        this.Controls.Add(yearLabel);
+        this.Controls.Add(artistTextBox);
+        this.Controls.Add(titleTextBox);
+        this.Controls.Add(genreTextBox);
+        this.Controls.Add(yearTextBox);
+        this.Controls.Add(okButton);
+        this.Controls.Add(cancelButton);
+    }
+}
+
+public class SearchArtistForm : Form
+{
+    public string Artist { get; set; }
+
+    public SearchArtistForm()
+    {
+        this.Text = "Поиск по исполнителю";
+        this.Width = 300;
+        this.Height = 130;
+        this.FormBorderStyle = FormBorderStyle.FixedDialog;
+        this.MaximizeBox = false;
+        this.MinimizeBox = false;
+        this.StartPosition = FormStartPosition.CenterParent;
+
+        var artistLabel = new Label { Text = "Исполнитель:", Location = new System.Drawing.Point(10, 10), Width = 100 };
+        var artistTextBox = new TextBox { Location = new System.Drawing.Point(120, 10), Width = 150 };
+        var okButton = new Button { Text = "OK", Location = new System.Drawing.Point(50, 50), Size = new System.Drawing.Size(75, 23), DialogResult = DialogResult.OK };
+        var cancelButton = new Button { Text = "Отмена", Location = new System.Drawing.Point(140, 50), Size = new System.Drawing.Size(75, 23), DialogResult = DialogResult.Cancel };
+
+        okButton.Click += (sender, e) =>
+        {
+            if (string.IsNullOrWhiteSpace(artistTextBox.Text))
+            {
+                MessageBox.Show("Пожалуйста, введите имя исполнителя.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            Artist = artistTextBox.Text;
+            DialogResult = DialogResult.OK;
+            Close();
+        };
+
+        cancelButton.Click += (sender, e) =>
+        {
+            DialogResult = DialogResult.Cancel;
+            Close();
+        };
+
+        this.Controls.Add(artistLabel);
+        this.Controls.Add(artistTextBox);
+        this.Controls.Add(okButton);
+        this.Controls.Add(cancelButton);
+    }
+}
+
+public class MusicCollectionForm : Form
+{
+    private MusicCollection musicCollection;
+    private ListView listView;
+    private Button addTrackButton;
+    private Button removeTrackButton;
+    private Button searchByArtistButton;
+    private Button sortByYearButton;
+    private Button showAllButton;
+    private StatusStrip statusStrip;
+    private ToolStripStatusLabel statusLabel;
+
+    public MusicCollectionForm()
+    {
+        this.Text = "Управление музыкальной коллекцией";
+        this.Width = 600;
+        this.Height = 500;
+        this.StartPosition = FormStartPosition.CenterScreen;
+        CreateControls();
+        musicCollection = new MusicCollection(listView);
+        UpdateStatus();
+    }
+
+    private void CreateControls()
+    {
+        listView = new ListView
+        {
+            Location = new System.Drawing.Point(10, 10),
+            Size = new System.Drawing.Size(565, 380),
+            View = View.Details,
+            FullRowSelect = true,
+            GridLines = true
+        };
+        listView.Columns.Add("Исполнитель", 180);
+        listView.Columns.Add("Название", 180);
+        listView.Columns.Add("Жанр", 120);
+        listView.Columns.Add("Год", 60);
+
+        addTrackButton = new Button
+        {
+            Location = new System.Drawing.Point(10, 400),
+            Text = "Добавить трек",
+            Size = new System.Drawing.Size(110, 30)
+        };
+        addTrackButton.Click += (sender, e) =>
+        {
+            var addTrackForm = new AddTrackForm();
+            if (addTrackForm.ShowDialog() == DialogResult.OK)
+            {
+                var track = new MusicTrack(
+                    addTrackForm.Artist,
+                    addTrackForm.Title,
+                    addTrackForm.Genre,
+                    addTrackForm.Year);
+                musicCollection.AddTrack(track);
+                UpdateStatus();
+            }
+        };
+
+        removeTrackButton = new Button
+        {
+            Location = new System.Drawing.Point(130, 400),
+            Text = "Удалить трек",
+            Size = new System.Drawing.Size(110, 30)
+        };
+        removeTrackButton.Click += (sender, e) =>
+        {
+            if (listView.SelectedItems.Count == 0)
+            {
+                MessageBox.Show("Сначала выберите трек для удаления.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var track = new MusicTrack(
+                listView.SelectedItems[0].SubItems[0].Text,
+                listView.SelectedItems[0].SubItems[1].Text,
+                listView.SelectedItems[0].SubItems[2].Text,
+                int.Parse(listView.SelectedItems[0].SubItems[3].Text));
+
+            if (MessageBox.Show($"Вы уверены, что хотите удалить трек \"{track.Artist} - {track.Title}\"?", 
+                "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                musicCollection.RemoveTrack(track);
+                UpdateStatus();
+            }
+        };
+
+        searchByArtistButton = new Button
+        {
+            Location = new System.Drawing.Point(250, 400),
+            Text = "Поиск по исполнителю",
+            Size = new System.Drawing.Size(130, 30)
+        };
+        searchByArtistButton.Click += (sender, e) =>
+        {
+            var searchForm = new SearchArtistForm();
+            if (searchForm.ShowDialog() == DialogResult.OK)
+            {
+                musicCollection.SearchByArtist(searchForm.Artist);
+            }
+        };
+
+        sortByYearButton = new Button
+        {
+            Location = new System.Drawing.Point(390, 400),
+            Text = "Сортировать по году",
+            Size = new System.Drawing.Size(130, 30)
+        };
+        sortByYearButton.Click += (sender, e) =>
+        {
+            musicCollection.SortByYear();
+        };
+
+        showAllButton = new Button
+        {
+            Location = new System.Drawing.Point(530, 400),
+            Text = "Показать все",
+            Size = new System.Drawing.Size(100, 30)
+        };
+        showAllButton.Click += (sender, e) =>
+        {
+            musicCollection.ShowAllTracks();
+            UpdateStatus();
+        };
+
+        statusStrip = new StatusStrip();
+        statusLabel = new ToolStripStatusLabel("Всего треков: 0");
+        statusStrip.Items.Add(statusLabel);
+        statusStrip.Location = new System.Drawing.Point(0, this.ClientSize.Height - statusStrip.Height);
+        statusStrip.SizingGrip = false;
+
+        this.Controls.Add(listView);
+        this.Controls.Add(addTrackButton);
+        this.Controls.Add(removeTrackButton);
+        this.Controls.Add(searchByArtistButton);
+        this.Controls.Add(sortByYearButton);
+        this.Controls.Add(showAllButton);
+        this.Controls.Add(statusStrip);
+    }
+
+    private void UpdateStatus()
+    {
+        statusLabel.Text = $"Всего треков в коллекции: {listView.Items.Count}";
+    }
+
+    [STAThread]
+    static void Main()
+    {
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+        Application.Run(new MusicCollectionForm());
+    }
+}
